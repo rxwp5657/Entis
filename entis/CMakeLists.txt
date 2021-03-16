@@ -8,7 +8,8 @@ target_sources(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/entis/sparse_set.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/entis/registry.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/entis/types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/entis/component_manager.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/entis/component_manager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/entis/error.h)
 
 # It should use C++17.
 target_compile_features(
