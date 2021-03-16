@@ -51,7 +51,7 @@ namespace entis
          * 
          * @returns a new entity that has no components attached to it.
          */ 
-        inline id_t create_entity()
+        inline id_t make_entity()
         {
             return (current_ == MAX_ID) ? make_new_entity() : recycle_entity();
         }

@@ -69,9 +69,9 @@ TEST(RegistryTest, CanCreateEntity)
 {
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
-    const entis::id_t e1 = registry.create_entity();
-    const entis::id_t e2 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
+    const entis::id_t e1 = registry.make_entity();
+    const entis::id_t e2 = registry.make_entity();
 
     ASSERT_EQ(e0, 0);
     ASSERT_EQ(e1, 1);
@@ -84,7 +84,7 @@ TEST(RegistryTest, CanBindComponents)
 
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
 
     BIND_RESULT bind_res0 = registry.bind<uint>(e0, 5);
     BIND_RESULT bind_res1 = registry.bind<Vec2>(e0, 0, 1);
@@ -97,8 +97,8 @@ TEST(RegistryTest, CanRetrieveComponent)
 {
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
-    const entis::id_t e1 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
+    const entis::id_t e1 = registry.make_entity();
 
     const Vec2 vec2_1{0, 1};
     const Vec2 vec2_2{1, 1};
@@ -121,7 +121,7 @@ TEST(RegistryTest, CanUpdateComponent)
 {
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
 
     const Vec2 vec2_1{0, 1};
     const Vec2 vec2_2{1, 1};
@@ -139,8 +139,8 @@ TEST(RegistryTest, CanGetAllEntitiesWithAComponentT)
 {
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
-    const entis::id_t e1 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
+    const entis::id_t e1 = registry.make_entity();
 
     const std::vector<entis::id_t> expected_vec2{e0, e1};
     const std::vector<entis::id_t> expected_vec3{e1};
@@ -160,8 +160,8 @@ TEST(RegistryTest, CanRemoveComponent)
 {
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
-    const entis::id_t e1 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
+    const entis::id_t e1 = registry.make_entity();
 
     const Vec2 vec2{0, 0};
     const Vec3 vec3{3, 3, 3};
@@ -182,8 +182,8 @@ TEST(RegistryTest, CanCheckIfEntityHasComponent)
 {
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
-    const entis::id_t e1 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
+    const entis::id_t e1 = registry.make_entity();
 
     registry.bind<Vec2>(e0, 0, 0);
     registry.bind<Vec3>(e1, 3, 3, 3);
@@ -199,7 +199,7 @@ TEST(RegistryTest, CanKillEntity)
 {
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
 
     const Vec2 vec2{1, 2};
     const Vec3 vec3{3, 4, 5};
@@ -222,18 +222,18 @@ TEST(RegistryTest, CanRecycleEntity)
 {
     entis::Registry registry{};
 
-    const entis::id_t e0 = registry.create_entity();
-    const entis::id_t e1 = registry.create_entity();
-    const entis::id_t e2 = registry.create_entity();
-    const entis::id_t e3 = registry.create_entity();
+    const entis::id_t e0 = registry.make_entity();
+    const entis::id_t e1 = registry.make_entity();
+    const entis::id_t e2 = registry.make_entity();
+    const entis::id_t e3 = registry.make_entity();
 
     registry.kill_entity(e2);
     registry.kill_entity(e0);
     registry.kill_entity(e1);
     registry.kill_entity(e3);
 
-    ASSERT_EQ(registry.create_entity(), 3);
-    ASSERT_EQ(registry.create_entity(), 1);
-    ASSERT_EQ(registry.create_entity(), 0);
-    ASSERT_EQ(registry.create_entity(), 2);
+    ASSERT_EQ(registry.make_entity(), 3);
+    ASSERT_EQ(registry.make_entity(), 1);
+    ASSERT_EQ(registry.make_entity(), 0);
+    ASSERT_EQ(registry.make_entity(), 2);
 }
