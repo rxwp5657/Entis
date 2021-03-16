@@ -10,27 +10,12 @@
 #include <unordered_map>
 
 #include "config.h"
+#include "error.h"
 #include "component_manager.h"
 
 
 namespace entis
 {
-    /**
-     * Possibe errors that could arise during
-     * binding of a key (id_t) and some value T.
-     */
-    enum class BindError
-    {
-        /// Key used to bind some value T is equal to the MAX_ID.
-        INVALID_KEY
-    };
-
-    /// "Long" descriptions of the errors defined on BindError enum.
-    const std::unordered_map<BindError, const char*> BIND_ERROR_DESC =
-    {
-        { BindError::INVALID_KEY, "key must be less than MAX_ID" }
-    };
-
     /**
      * A generic sparse set container which associates a key (id_t)
      * with some value T.
@@ -123,11 +108,11 @@ namespace entis
          * @throws an exception whenever std::vector can't grow.
          */
         template<typename... Args>
-        std::optional<BindError> bind(const id_t key, Args&&... args)
+        std::optional<error::BindError> bind(const id_t key, Args&&... args)
         {
             // avoid binding the null key (MAX_ID).
             if(is_null_key(key))
-                return std::optional<BindError>{ BindError::INVALID_KEY };
+                return std::optional<error::BindError>{ error::BindError::INVALID_KEY };
 
             // increase the size of the sparse set to hold new key.
             if(out_of_bounds(key))
@@ -146,7 +131,7 @@ namespace entis
                 data_[sparse_[key]] = T(std::forward<Args>(args)...);
             }
 
-            return std::optional<BindError>{};
+            return std::optional<error::BindError>{};
         }
 
         /**

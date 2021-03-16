@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "sparse_set.h"
+#include "error.h"
 
 namespace entis
 {
@@ -15,7 +16,7 @@ namespace entis
     template <typename T>
     using Component = std::optional<std::reference_wrapper<const T>>;
 
-    using BindResult = std::optional<BindError>;
+    using BindResult = std::optional<error::BindError>;
 }
 
 #endif
