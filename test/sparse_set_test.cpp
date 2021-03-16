@@ -9,7 +9,7 @@
 
 TEST(SparseSetTest, CanBindData)
 {
-    using BIND_RESULT = std::optional<entis::BindError>;
+    using BIND_RESULT = std::optional<entis::error::BindError>;
 
     entis::SparseSet<std::string> set{};
 
