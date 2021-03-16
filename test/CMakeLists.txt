@@ -6,6 +6,7 @@ add_executable(
     ${TEST_NAME} 
     main.cpp 
     sparse_set_test.cpp
+    registry_test.cpp
 )
 
 target_link_libraries(

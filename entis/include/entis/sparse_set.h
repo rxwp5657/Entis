@@ -9,7 +9,8 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "./config.h"
+#include "config.h"
+#include "component_manager.h"
 
 
 namespace entis
@@ -43,7 +44,7 @@ namespace entis
      * @tparam T the type of the data that the container will store.
      */
     template <typename T>
-    class SparseSet
+    class SparseSet : public IComponentManager
     {
     public:
 
@@ -54,9 +55,9 @@ namespace entis
          * @tparam T the type of the data that the container will store.
          */
         SparseSet()
-        : _sparse{},
-          _dense{},
-          _data{}
+        : sparse_{},
+          dense_{},
+          data_{}
         { 
 
         }
@@ -73,7 +74,7 @@ namespace entis
         {
             bool result = true;
 
-            if(out_of_bounds(key) || is_null_key(_sparse[key]))
+            if(out_of_bounds(key) || is_null_key(sparse_[key]))
                 result = false;
 
             return result;
@@ -93,7 +94,7 @@ namespace entis
             std::optional<std::reference_wrapper<const T>> result{};
 
             if(has_data(key))
-                result = std::cref(_data[_sparse[key]]);
+                result = std::cref(data_[sparse_[key]]);
 
             return result;
         }
@@ -122,7 +123,7 @@ namespace entis
          * @throws an exception whenever std::vector can't grow.
          */
         template<typename... Args>
-        std::optional<BindError> bind(const id_t key, const Args&&... args)
+        std::optional<BindError> bind(const id_t key, Args&&... args)
         {
             // avoid binding the null key (MAX_ID).
             if(is_null_key(key))
@@ -135,14 +136,14 @@ namespace entis
             // create new association and instance.
             if(!has_data(key))
             {
-                _sparse[key] = _dense.size();
-                _dense.push_back(key);
-                _data.push_back({ std::forward<const Args>(args)... });
+                sparse_[key] = dense_.size();
+                dense_.push_back(key);
+                data_.push_back(T(std::forward<Args>(args)...));
             }
             // update the current association.
             else
             {
-                _data[_sparse[key]] = T{ std::forward<const Args>(args)... };
+                data_[sparse_[key]] = T(std::forward<Args>(args)...);
             }
 
             return std::optional<BindError>{};
@@ -168,29 +169,40 @@ namespace entis
 
             if(has_data(key))
             {
-                const id_t packed_index = _sparse[key];
+                const id_t packed_index = sparse_[key];
 
-                _sparse[_dense.back()] = packed_index;
-                _sparse[key] = MAX_ID;
+                sparse_[dense_.back()] = packed_index;
+                sparse_[key] = MAX_ID;
 
-                std::swap(_dense[packed_index], _dense.back());
-                std::swap(_data[packed_index], _data.back());
+                std::swap(dense_[packed_index], dense_.back());
+                std::swap(data_[packed_index], data_.back());
 
                 // pass ownership to the optional
-                result = std::move(_data.back());
+                result = std::move(data_.back());
 
-                _data.pop_back();
-                _dense.pop_back();
+                data_.pop_back();
+                dense_.pop_back();
             }
 
             return result;
         }
 
+        /**
+         * Delete the association between an entity and its component
+         * if any.
+         * 
+         * @param entity the entity whose association we want to delete.
+         */
+        virtual void delete_component(const id_t entity) override
+        {
+            unbind(entity);
+        }
+
     private:
 
-        std::vector<id_t> _sparse;
-        std::vector<id_t> _dense;
-        std::vector<T> _data;
+        std::vector<id_t> sparse_;
+        std::vector<id_t> dense_;
+        std::vector<T> data_;
 
         /**
          * Check if the sparse array has enough space
@@ -204,7 +216,7 @@ namespace entis
          */
         inline bool out_of_bounds(const id_t key) noexcept
         {
-            return key >= _sparse.size();
+            return key >= sparse_.size();
         }
 
         /**
@@ -232,12 +244,12 @@ namespace entis
          */
         size_t rezise(const id_t key)
         {
-            const size_t from = _sparse.size();
-            const size_t to = key - _sparse.size();
+            const size_t from = sparse_.size();
+            const size_t to = key - sparse_.size();
 
-            _sparse.resize(key + 1);
+            sparse_.resize(key + 1);
 
-            std::fill(_sparse.begin() + from, _sparse.end() + to, MAX_ID);
+            std::fill(sparse_.begin() + from, sparse_.end() + to, MAX_ID);
 
             return to;
         }
