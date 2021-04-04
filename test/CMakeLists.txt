@@ -7,6 +7,7 @@ add_executable(
     main.cpp 
     sparse_set_test.cpp
     registry_test.cpp
+    type_list_test.cpp
 )
 
 target_link_libraries(
