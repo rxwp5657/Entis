@@ -235,6 +235,20 @@ namespace entis
             return std::make_tuple(get_component<Components>(entity) ...);
         }
 
+        /**
+         * Get the specified components of all the entities that satisfy the query params,
+         * this is, the list of components that the entities must have and the ones it
+         * mustn't have.
+         * 
+         * @tparam WithComponents a type_list_t declaration containing the types of the
+         * components that the entities must have.
+         * 
+         * @tparam WithoutComponents a type_list_t declaration containing the types of the
+         * components that the entities mustn't have.
+         * 
+         * @return a vector of tuples of references to the specified components of the entities
+         * that satisfy the query.
+         */
         template <typename WithComponents, typename WithoutComponents = typing::type_list_t<>>
         QueryResult<WithComponents> query() const
         {
@@ -370,6 +384,8 @@ namespace entis
          * 
          * @tparam Components a type_list_t declaration that contain the expected components.
          * 
+         * @returns a sorted vector of entities where each of them is guaranteed to have
+         * all the components specified on the type_list_t.
          */
         template <typename Components>
         inline std::vector<id_t> with_components() const
