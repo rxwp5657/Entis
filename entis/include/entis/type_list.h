@@ -114,7 +114,7 @@ namespace entis
         /**
          * Get the first type on a type_list_t.
          * 
-         * @tparam List a type_list_t definition.
+         * @tparam List a type_list_t declaration.
          * 
          * @returns the first element on a type_list_t
          * (e.g. <int, char, double> -> int).
@@ -137,7 +137,7 @@ namespace entis
          * Create a new type_list_t with a new type added on its tail 
          * (last position).
          * 
-         * @tparam List a type_list_t definition that will be used as a base
+         * @tparam List a type_list_t declaration that will be used as a base
          * for the new type_list_t.
          * 
          * @tparam NewType the type to append to the new type_list_t.
@@ -162,7 +162,7 @@ namespace entis
         /**
          * Creates a new type_list_t with a type added at the beginning
          * 
-         * @tparam List a type_list_t definition that will be used as a base
+         * @tparam List a type_list_t declaration that will be used as a base
          * for the new type_list_t.
          * 
          * @tparam NewType the type to append to the new type_list_t.
@@ -194,7 +194,7 @@ namespace entis
         /**
          * Creates a new type_list_t with a type added at the beginning
          * 
-         * @tparam List a type_list_t definition that will be used as a base
+         * @tparam List a type_list_t declaration that will be used as a base
          * for the new type_list_t.
          * 
          * @tparam NewType the type to append to the new type_list_t.
@@ -282,7 +282,7 @@ namespace entis
         /**
          * Create a new type_list_t without its last element.
          * 
-         * @tparam List is a type_list_t definition.
+         * @tparam List is a type_list_t declaration.
          * 
          * @returns a new type_list_t without its last element
          * (e.g. <int, char double> -> <int, char>)
