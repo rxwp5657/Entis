@@ -1,3 +1,4 @@
+#include <tuple>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -5,7 +6,9 @@
 
 #include <gtest/gtest.h>
 
+#include <entis/types.h>
 #include <entis/registry.h>
+#include <entis/type_list.h>
 #include <entis/sparse_set.h>
 
 // Utily structs used for testing purposes.
@@ -80,14 +83,14 @@ TEST(RegistryTest, CanCreateEntity)
 
 TEST(RegistryTest, CanBindComponents)
 {
-    using BIND_RESULT = std::optional<entis::error::BindError>;
+    using BindResult = std::optional<entis::error::BindError>;
 
     entis::Registry registry{};
 
     const entis::id_t e0 = registry.make_entity();
 
-    BIND_RESULT bind_res0 = registry.bind<uint>(e0, 5);
-    BIND_RESULT bind_res1 = registry.bind<Vec2>(e0, 0, 1);
+    BindResult bind_res0 = registry.bind<uint>(e0, 5);
+    BindResult bind_res1 = registry.bind<Vec2>(e0, 0, 1);
 
     ASSERT_FALSE(bind_res0.has_value());
     ASSERT_FALSE(bind_res1.has_value());
@@ -236,4 +239,78 @@ TEST(RegistryTest, CanRecycleEntity)
     ASSERT_EQ(registry.make_entity(), 1);
     ASSERT_EQ(registry.make_entity(), 0);
     ASSERT_EQ(registry.make_entity(), 2);
+}
+
+TEST(RegistryTest, CanGetMultipleComponents)
+{
+    using Empty = entis::typing::type_list_t<>;
+    using WithComp = entis::typing::type_list_t<uint32_t, Vec2>;
+
+    entis::Registry registry{};
+
+    const entis::id_t e0 = registry.make_entity();
+    const entis::id_t e1 = registry.make_entity();
+
+    const Vec2 e0_vec2{0 , 2};
+    const Vec2 e1_vec2{1 , 3};
+
+    registry.bind<uint32_t>(e0, 0);
+    registry.bind<uint32_t>(e1, 1);
+
+    registry.bind<Vec2>(e0, e0_vec2);
+    registry.bind<Vec2>(e1, e1_vec2);
+
+    const entis::Components<Empty> expected_empty{};
+
+    const entis::Components<WithComp> result_e0 = registry.get_components<uint32_t, Vec2>(e0);
+    const entis::Components<WithComp> result_e1 = registry.get_components<uint32_t, Vec2>(e1);
+    const entis::Components<Empty> empty_result = registry.get_components<>(e0);
+
+    ASSERT_EQ(std::get<0>(result_e0).value(), e0);
+    ASSERT_EQ(std::get<1>(result_e0).value(), e0_vec2);
+
+    ASSERT_EQ(std::get<0>(result_e1).value(), e1);
+    ASSERT_EQ(std::get<1>(result_e1).value(), e1_vec2);
+
+    ASSERT_EQ(empty_result, expected_empty);
+}
+
+TEST(RegistryTest, CanQueryComponents)
+{
+    using Empty = entis::typing::type_list_t<>;
+    using WithComp = entis::typing::type_list_t<uint32_t, Vec2>;
+    using WithoutComp = entis::typing::type_list_t<char>;
+
+    entis::Registry registry{};
+
+    const entis::id_t e0 = registry.make_entity();
+    const entis::id_t e1 = registry.make_entity();
+
+    const Vec2 e0_vec2{0 , 2};
+    const Vec2 e1_vec2{1 , 3};
+
+    registry.bind<uint32_t>(e0, 0);
+    registry.bind<uint32_t>(e1, 1);
+
+    registry.bind<Vec2>(e0, e0_vec2);
+    registry.bind<Vec2>(e1, e1_vec2);
+
+    registry.bind<char>(e0, 'a');
+
+    const entis::QueryResult<WithComp> result_with_comp = registry.query<WithComp>();
+    const entis::QueryResult<WithComp> result_without_comp = registry.query<WithComp, WithoutComp>();
+    const entis::QueryResult<Empty> result_empty = registry.query<Empty>();
+
+    ASSERT_EQ(result_with_comp.size(), 2);
+    ASSERT_EQ(result_without_comp.size(), 1);
+    ASSERT_EQ(result_empty.size(), 0);
+
+    ASSERT_EQ(std::get<0>(result_with_comp[0]), e0);
+    ASSERT_EQ(std::get<1>(result_with_comp[0]), e0_vec2);
+
+    ASSERT_EQ(std::get<0>(result_with_comp[1]), e1);
+    ASSERT_EQ(std::get<1>(result_with_comp[1]), e1_vec2);
+
+    ASSERT_EQ(std::get<0>(result_without_comp[0]), e1);
+    ASSERT_EQ(std::get<1>(result_without_comp[0]), e1_vec2);
 }

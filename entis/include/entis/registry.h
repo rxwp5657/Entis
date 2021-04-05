@@ -1,6 +1,7 @@
 #ifndef REGISTRY_H
 #define REGISTRY_H
 
+#include <tuple>
 #include <vector>
 #include <memory>
 #include <utility>
@@ -11,10 +12,11 @@
 
 #include "types.h"
 #include "config.h"
+#include "type_list.h"
 #include "sparse_set.h"
 
 namespace entis
-{   
+{
     /**
      * Manages all the entities with their components by
      * providing a centralized interface for:
@@ -94,7 +96,7 @@ namespace entis
          * @returns true if the entity has a component T, false otherwise.
          */
         template <typename T>
-        bool has_component(const id_t entity)
+        bool has_component(const id_t entity) const
         {
             ComponentManager<T> manager = get_component_manager<T>();
 
@@ -112,7 +114,7 @@ namespace entis
          * and an empty optional otherwise.
          */
         template <typename T>
-        Component<T> get_component(const id_t entity)
+        Component<T> get_component(const id_t entity) const
         {
             Component<T> component{};
 
@@ -198,7 +200,7 @@ namespace entis
          * @return a list of entities that have a component T.
          */
         template<typename T>
-        std::vector<id_t> entities_with_component()
+        std::vector<id_t> entities_with_component() const
         {
             ComponentManager<T> manager = get_component_manager<T>();
 
@@ -216,9 +218,69 @@ namespace entis
             return entities;
         }
 
+        /**
+         * Get all the specified components of an entity if any.
+         * 
+         * @tparam Components all the components of the specified 
+         * entity that we want to retrieve.
+         * 
+         * @param entity the entity whose components we want to retieve.
+         * 
+         * @returns a tuple of optionals of references to the specified types.
+         * (e.g. tuple<optional<reference_wrapp<int>, optional<reference_wrapp<string>>).
+         */
+        template <typename... Components>
+        auto get_components(const id_t entity) const
+        {
+            return std::make_tuple(get_component<Components>(entity) ...);
+        }
+
+        /**
+         * Get the specified components of all the entities that satisfy the query params,
+         * this is, the list of components that the entities must have and the ones it
+         * mustn't have.
+         * 
+         * @tparam WithComponents a type_list_t declaration containing the types of the
+         * components that the entities must have.
+         * 
+         * @tparam WithoutComponents a type_list_t declaration containing the types of the
+         * components that the entities mustn't have.
+         * 
+         * @return a vector of tuples of references to the specified components of the entities
+         * that satisfy the query.
+         */
+        template <typename WithComponents, typename WithoutComponents = typing::type_list_t<>>
+        QueryResult<WithComponents> query() const
+        {
+            // This vectors should be already sorted as the entity array appends values
+            // incrementally (e.g. 0, 1, 2, 3, etc.). Also, note that when killing 
+            // an entity the entity array is not sorted anymore but, since they don't
+            // have any component, the evaluation will always be false thus leaving
+            // only sorted results.
+            std::vector<id_t> desired_entities = with_components<WithComponents>();
+            std::vector<id_t> undesirable_entities = with_components<WithoutComponents>();
+
+            std::vector<id_t> required_entities{};
+
+            // leave only the desired entities.
+            std::set_difference(desired_entities.begin(), desired_entities.end(),
+                                undesirable_entities.begin(), undesirable_entities.end(),
+                                std::inserter(required_entities, required_entities.begin()));
+
+            QueryResult<WithComponents> result{};
+
+            std::transform(required_entities.begin(), required_entities.end(), std::back_inserter(result),
+            [this](const id_t entity)
+            {
+                return TypeListHelper<WithComponents>::convert_and_unwrapp(*this, entity);
+            });
+
+            return result;
+        }
+
     private:
 
-        id_t current_;
+        id_t current_; // last deleted entity (mainly used on implicit list).
         std::vector<id_t> entities_;
         std::unordered_map<std::string, std::shared_ptr<IComponentManager>> component_managers_;
 
@@ -285,7 +347,7 @@ namespace entis
          * if no manager has been created the pointer is empty.
          */
         template <typename T>
-        inline ComponentManager<T> get_component_manager()
+        inline ComponentManager<T> get_component_manager() const
         {
             ComponentManager<T> sparse_set{};
 
@@ -316,6 +378,92 @@ namespace entis
 
             return std::static_pointer_cast<SparseSet<T>>(component_managers_.at(type_name));
         }
+
+        /**
+         * Get all entities that have all the components on a type_list_t.
+         * 
+         * @tparam Components a type_list_t declaration that contain the expected components.
+         * 
+         * @returns a sorted vector of entities where each of them is guaranteed to have
+         * all the components specified on the type_list_t.
+         */
+        template <typename Components>
+        inline std::vector<id_t> with_components() const
+        {
+            std::vector<id_t> result{};
+
+            if(!typing::is_empty<Components>::value)
+            {
+                std::copy_if(entities_.begin(), entities_.end(), std::back_inserter(result),
+                [this](const id_t entity)
+                {
+                    return TypeListHelper<Components>::has_components(*this, entity);
+                });
+            }
+
+            return result;
+        }
+
+        /**
+         * Abstract class used to apply registry functions on a type_list_t.
+         * 
+         * @tparam List a type_list_t definition.
+         */
+        template <typename List>
+        class TypeListHelper
+        {
+        public:
+            /**
+             * Create a tuple containing references to the types specified on a type_list_t. 
+             * For example: 
+             * 
+             * type_list_t<int, string> -> 
+             * tuple<reference_wrapper<int>, reference_wrapper<string>>
+             * 
+             * @tparam List a type_list_t definition.
+             * 
+             * @param registry a registry instance used to get component instances.
+             * @param entity an entity whose components we want to retrieve.
+             * 
+             * @returns a tuple of reference wrappers to the specified types.
+             */
+            static auto convert_and_unwrapp(const Registry& registry, const id_t entity);
+
+            /**
+             * Check if an entity has all components specified on a type_list_t.
+             * 
+             * @tparam List a type_list_t definition.
+             * 
+             * @param registry a registry instance used to get check if an 
+             * entity has some components.
+             * @param entity the entity that we will test.
+             * 
+             * @returns true if the specified entity has all the specified components and
+             * false otherwise.
+             */
+            static bool has_components(const Registry& registry, const id_t entity);
+        };
+
+        /**
+         * Specialization used to convert a type_list_t into a parameter pack. 
+         * 
+         * @tparam List parameter pack containing the list of types specified on
+         * a type_list_t.
+         */
+        template <typename... List>
+        class TypeListHelper<typing::type_list_t<List...>>
+        {
+        public:
+            static auto convert_and_unwrapp(const Registry& registry, const id_t entity)
+            {
+                return std::make_tuple(registry.get_component<List>(entity).value() ...);
+            }
+
+            static bool has_components(const Registry& registry, const id_t entity)
+            {
+                return (registry.has_component<List>(entity) && ...);
+            }
+        };
     };
 }
 
